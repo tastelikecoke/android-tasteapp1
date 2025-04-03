@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -93,14 +94,16 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
 
 @Composable
 fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
-    Column {
-        val count = accessor.getDataCount()
+    var count by remember { mutableStateOf(accessor.getDataCount()) }
+
+    Column (modifier = modifier.padding(24.dp)){
         for (i in 0..<count)
-            Entry(accessor, i, modifier)
+            Entry(accessor, { count -= 1 }, i, modifier)
 
         Button(
             onClick = {
                 accessor.setDataCount(count + 1)
+                count += 1
             },
             modifier = modifier.padding(12.dp)
         ) {
@@ -112,7 +115,7 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Entry(accessor: IDataAccessor, index: Int, modifier: Modifier = Modifier) {
+fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifier: Modifier = Modifier) {
     var text by remember { mutableStateOf(accessor.getData(index)) }
     Row( ) {
         OutlinedTextField(
@@ -121,12 +124,16 @@ fun Entry(accessor: IDataAccessor, index: Int, modifier: Modifier = Modifier) {
                 text = it
                 accessor.storeData(it, index)
             },
-            label = { Text("Note") }
+            label = { Text("Note") },
+            modifier = modifier.fillMaxWidth(0.8f)
 
         )
 
         IconButton(
-            onClick = { accessor.removeData("", index) },
+            onClick = {
+                accessor.removeData("", index)
+                subtractItems()
+            },
         ) {
             Icon(Icons.Default.Clear, contentDescription = "Remove")
         }
