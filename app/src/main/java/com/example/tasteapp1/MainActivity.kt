@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.TextField
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -45,24 +46,32 @@ class MainActivity : ComponentActivity() {
 }
 
 interface IDataAccessor {
-    fun storeData(data: String, index: Int): Unit
-    fun getData(index: Int): String
+    val NOTE_KEY: String
+    val DURATION_KEY: String
+    val DATE_KEY: String
+
+    fun storeData(key: String, data: String, index: Int): Unit
+    fun getData(key: String, index: Int): String
     fun getDataCount(): Int
     fun setDataCount(count: Int): Unit
     fun removeData(data: String, index: Int): Unit
 }
 
 class DataAccessor(val activity : MainActivity) : IDataAccessor {
-    override fun storeData(data: String, index: Int): Unit {
+    override val NOTE_KEY = "Note"
+    override val DURATION_KEY = "Duration"
+    override val DATE_KEY = "Date"
+
+    override fun storeData(key: String, data: String, index: Int): Unit {
         val sharedPref = activity.getPreferences(Context.MODE_PRIVATE) ?: return
         with(sharedPref.edit()) {
-            putString("tasteApp1Note${index}", data)
+            putString("tasteApp1Note.${key}.${index}", data)
             apply()
         }
     }
-    override fun getData(index: Int): String {
+    override fun getData(key: String, index: Int): String {
         val sharedPref = activity.getPreferences(Context.MODE_PRIVATE) ?: return ""
-        return sharedPref.getString("tasteApp1Note${index}", "") ?: return ""
+        return sharedPref.getString("tasteApp1Note.${key}.${index}", "") ?: return ""
     }
 
     override fun getDataCount(): Int {
@@ -82,8 +91,11 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
         val count = getDataCount()
         val sharedPref = activity.getPreferences(Context.MODE_PRIVATE) ?: return
         with(sharedPref.edit()) {
-            for (i in index..<count)
-                putString("tasteApp1Note${i}", getData(i+1))
+            for (i in index..<count) {
+                putString("tasteApp1Note.${NOTE_KEY}.${i}", getData(NOTE_KEY, i+1))
+                putString("tasteApp1Note.${DURATION_KEY}.${i}", getData(DURATION_KEY, i+1))
+                putString("tasteApp1Note.${DATE_KEY}.${i}", getData(DATE_KEY, i+1))
+            }
             apply()
         }
 
@@ -96,7 +108,7 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
 fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
     var count by remember { mutableStateOf(accessor.getDataCount()) }
 
-    Column (modifier = modifier.padding(24.dp)){
+    Column (modifier = modifier.padding(12.dp)){
         for (i in 0..<count)
             Entry(accessor, { count -= 1 }, i, modifier)
 
@@ -116,17 +128,26 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
 
 @Composable
 fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifier: Modifier = Modifier) {
-    var text by remember { mutableStateOf(accessor.getData(index)) }
+    var text by remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
+    var duration by remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
     Row( ) {
         OutlinedTextField(
             value = text,
             onValueChange = {
                 text = it
-                accessor.storeData(it, index)
+                accessor.storeData(accessor.NOTE_KEY, it, index)
             },
             label = { Text("Note") },
-            modifier = modifier.fillMaxWidth(0.8f)
+            modifier = modifier.fillMaxWidth(0.5f)
+        )
 
+        TextField(
+            value = duration,
+            onValueChange = {
+                duration = it
+                accessor.storeData(accessor.DURATION_KEY, it, index)
+            },
+            modifier = modifier.fillMaxWidth(0.3f)
         )
 
         IconButton(
@@ -142,8 +163,12 @@ fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifi
 
 
 class DummyAccessor : IDataAccessor {
-    override fun storeData(data: String, index: Int): Unit {}
-    override fun getData(index: Int): String { return "Note" }
+    override val NOTE_KEY = "Note"
+    override val DURATION_KEY = "Duration"
+    override val DATE_KEY = "Date"
+
+    override fun storeData(key: String, data: String, index: Int): Unit {}
+    override fun getData(key: String, index: Int): String { return "Note" }
     override fun getDataCount(): Int { return 2 }
     override fun setDataCount(count: Int): Unit { return }
     override fun removeData(data: String, index: Int): Unit {}
