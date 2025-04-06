@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.TextField
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Card
+import androidx.compose.runtime.MutableState
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -127,29 +129,46 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
 
 
 }
+fun validateDuration(value: String): Boolean {
+
+    if (value.last() == 'd' || value.last() == 'h' || value.last() == 'm' || value.last() == 's') {
+        val substringNumber = value.substring(0, value.length - 1).toFloatOrNull()
+        if(substringNumber != null)
+        {
+            return true
+        }
+    }
+    return false
+}
 
 @Composable
 fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifier: Modifier = Modifier) {
-    var text by remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
-    var duration by remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
+    var text = remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
+    var duration = remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
     val isShowDialog = remember { mutableStateOf(false) }
 
     if (isShowDialog.value) {
         EntryDialog(
             accessor,
+            text,
+            duration,
             subtractItems,
             index,
             {
-                text = accessor.getData(accessor.NOTE_KEY, index)
-                duration = accessor.getData(accessor.DURATION_KEY, index)
+                accessor.storeData(accessor.NOTE_KEY, text.value, index)
+                if(validateDuration(duration.value))
+                    accessor.storeData(accessor.DURATION_KEY, duration.value, index)
+                else
+                    duration.value = "0s"
+
                 isShowDialog.value = false
             },
             modifier
         )
     }
     Row( ) {
-        Text(text, modifier=modifier.fillMaxWidth(0.5f))
-        Text(duration, modifier=modifier.fillMaxWidth(0.3f))
+        Text(text.value, modifier=modifier.fillMaxWidth(0.5f))
+        Text(duration.value, modifier=modifier.fillMaxWidth(0.3f))
         Button(
             onClick = {
                 isShowDialog.value = true
@@ -162,9 +181,7 @@ fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifi
 }
 
 @Composable
-fun EntryDialog(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
-    var text by remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
-    var duration by remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
+fun EntryDialog(accessor: IDataAccessor, text: MutableState<String>, duration: MutableState<String>, subtractItems: () -> Unit, index: Int, onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(
             modifier = Modifier
@@ -175,19 +192,17 @@ fun EntryDialog(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, 
             Column (modifier = modifier.padding(12.dp)) {
 
                 OutlinedTextField(
-                    value = text,
+                    value = text.value,
                     onValueChange = {
-                        text = it
-                        accessor.storeData(accessor.NOTE_KEY, it, index)
+                        text.value = it
                     },
                     label = { Text("Note") }
                 )
 
                 OutlinedTextField(
-                    value = duration,
+                    value = duration.value,
                     onValueChange = {
-                        duration = it
-                        accessor.storeData(accessor.DURATION_KEY, it, index)
+                        duration.value = it
                     },
                     label = { Text("Duration") }
                 )
@@ -207,7 +222,7 @@ fun EntryDialog(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, 
                             onDismissRequest()
                         },
                     ) {
-                        Text("Done")
+                        Text("Confirm")
                     }
                 }
             }
@@ -240,6 +255,6 @@ fun TodoListPreview() {
 @Composable
 fun TodoListDialogPreview() {
     TasteApp1Theme {
-        EntryDialog(DummyAccessor(), { }, 0, {})
+        EntryDialog(DummyAccessor(), remember { mutableStateOf("Note")}, remember { mutableStateOf("0s")}, {}, 0, {})
     }
 }
