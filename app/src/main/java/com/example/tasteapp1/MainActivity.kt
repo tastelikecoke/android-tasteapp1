@@ -28,6 +28,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.TextField
+import androidx.compose.ui.window.Dialog
+import androidx.compose.material3.Card
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,33 +132,85 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
 fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifier: Modifier = Modifier) {
     var text by remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
     var duration by remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
+    val isShowDialog = remember { mutableStateOf(false) }
+
+    if (isShowDialog.value) {
+        EntryDialog(
+            accessor,
+            subtractItems,
+            index,
+            {
+                text = accessor.getData(accessor.NOTE_KEY, index)
+                duration = accessor.getData(accessor.DURATION_KEY, index)
+                isShowDialog.value = false
+            },
+            modifier
+        )
+    }
     Row( ) {
-        OutlinedTextField(
-            value = text,
-            onValueChange = {
-                text = it
-                accessor.storeData(accessor.NOTE_KEY, it, index)
-            },
-            label = { Text("Note") },
-            modifier = modifier.fillMaxWidth(0.5f)
-        )
-
-        TextField(
-            value = duration,
-            onValueChange = {
-                duration = it
-                accessor.storeData(accessor.DURATION_KEY, it, index)
-            },
-            modifier = modifier.fillMaxWidth(0.3f)
-        )
-
-        IconButton(
+        Text(text, modifier=modifier.fillMaxWidth(0.5f))
+        Text(duration, modifier=modifier.fillMaxWidth(0.3f))
+        Button(
             onClick = {
-                accessor.removeData("", index)
-                subtractItems()
+                isShowDialog.value = true
             },
+            //modifier=modifier.fillMaxWidth(0.2f)
         ) {
-            Icon(Icons.Default.Clear, contentDescription = "Remove")
+            Text("Edit")
+        }
+    }
+}
+
+@Composable
+fun EntryDialog(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, onDismissRequest: () -> Unit, modifier: Modifier = Modifier) {
+    var text by remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
+    var duration by remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
+    Dialog(onDismissRequest = { onDismissRequest() }) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        )
+        {
+            Column (modifier = modifier.padding(12.dp)) {
+
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = {
+                        text = it
+                        accessor.storeData(accessor.NOTE_KEY, it, index)
+                    },
+                    label = { Text("Note") }
+                )
+
+                OutlinedTextField(
+                    value = duration,
+                    onValueChange = {
+                        duration = it
+                        accessor.storeData(accessor.DURATION_KEY, it, index)
+                    },
+                    label = { Text("Duration") }
+                )
+                Row () {
+
+                    Button(
+                        onClick = {
+                            accessor.removeData("", index)
+                            subtractItems()
+                        },
+                    ) {
+                        Text("Remove")
+                    }
+
+                    Button(
+                        onClick = {
+                            onDismissRequest()
+                        },
+                    ) {
+                        Text("Done")
+                    }
+                }
+            }
         }
     }
 }
@@ -179,5 +233,13 @@ class DummyAccessor : IDataAccessor {
 fun TodoListPreview() {
     TasteApp1Theme {
         TodoList(DummyAccessor())
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TodoListDialogPreview() {
+    TasteApp1Theme {
+        EntryDialog(DummyAccessor(), { }, 0, {})
     }
 }
