@@ -144,7 +144,7 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
 
         if (durationSeconds < 0.0001) return 1.0
         if (futureDate < currentDate) return 1.0
-        if ((futureDate - currentDate) / durationSeconds < 0.0001) return 0.0
+        if ((futureDate - currentDate) / durationSeconds > 1.0) return 1.0
         return 1.0 - (futureDate - currentDate) / durationSeconds
 
     }
