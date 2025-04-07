@@ -28,9 +28,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.TextField
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.MutableState
 
 class MainActivity : ComponentActivity() {
@@ -166,17 +168,23 @@ fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifi
             modifier
         )
     }
-    Row( ) {
-        Text(text.value, modifier=modifier.fillMaxWidth(0.5f))
-        Text(duration.value, modifier=modifier.fillMaxWidth(0.3f))
-        Button(
-            onClick = {
-                isShowDialog.value = true
-            },
-            //modifier=modifier.fillMaxWidth(0.2f)
-        ) {
-            Text("Edit")
+    Column {
+        Row( ) {
+            Text(text.value, modifier=modifier.fillMaxWidth(0.5f))
+            Text(duration.value, modifier=modifier.fillMaxWidth(0.4f))
+            IconButton(
+                onClick = {
+                    isShowDialog.value = true
+                },
+                //modifier=modifier.fillMaxWidth(0.2f)
+            ) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit")
+            }
         }
+        LinearProgressIndicator(
+            progress = { .50f },
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 
@@ -217,6 +225,14 @@ fun EntryDialog(accessor: IDataAccessor, text: MutableState<String>, duration: M
                         Text("Remove")
                     }
 
+                    Button(
+                        onClick = {
+
+                            onDismissRequest()
+                        },
+                    ) {
+                        Text("Restart")
+                    }
                     Button(
                         onClick = {
                             onDismissRequest()
