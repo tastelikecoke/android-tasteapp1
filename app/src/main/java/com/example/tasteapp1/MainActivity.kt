@@ -133,7 +133,11 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
         val currentDate = Instant.now().epochSecond.toDouble()
         val futureDate = when (futureDateString) {
             "" -> currentDate
-            else -> futureDateString.toDouble()
+            else -> {
+                val parsedDate = futureDateString.toDoubleOrNull()
+                if (parsedDate == null) return currentDate
+                else futureDateString.toDouble()
+            }
         }
 
         val durationSeconds = durationToSeconds(getData(DURATION_KEY, index))
@@ -180,7 +184,7 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
 
 }
 fun validateDuration(value: String): Boolean {
-
+    if (value.isEmpty()) return false
     if (value.last() == 'd' || value.last() == 'h' || value.last() == 'm' || value.last() == 's') {
         val substringNumber = value.substring(0, value.length - 1).toFloatOrNull()
         if(substringNumber != null)
