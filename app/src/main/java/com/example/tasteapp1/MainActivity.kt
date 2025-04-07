@@ -288,6 +288,13 @@ fun EntryDialog(accessor: IDataAccessor, text: MutableState<String>, duration: M
 
                     Button(
                         onClick = {
+                            // full refresh here
+                            accessor.storeData(accessor.NOTE_KEY, text.value, index)
+                            if(validateDuration(duration.value))
+                                accessor.storeData(accessor.DURATION_KEY, duration.value, index)
+                            else
+                                duration.value = "0s"
+
                             accessor.storeProgress(0.0, index)
                             onDismissRequest()
                         },
