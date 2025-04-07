@@ -30,8 +30,11 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.toMutableStateList
+import kotlinx.coroutines.delay
 import java.time.Instant
 
 class MainActivity : ComponentActivity() {
@@ -156,18 +159,32 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
 fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
     var count by remember { mutableStateOf(accessor.getDataCount()) }
 
-    Column (modifier = modifier.padding(12.dp)){
+    Column (modifier = modifier.padding(12.dp, 54.dp)){
         for (i in 0..<count)
+        {
+            var isRefresh = remember { mutableStateOf(false) }
             Entry(accessor, { count -= 1 }, i, modifier)
+        }
+        Row {
+            Button(
+                onClick = {
+                    accessor.setDataCount(count + 1)
+                    count += 1
+                },
+                modifier = modifier.padding(12.dp)
+            ) {
+                Text("Add")
+            }
 
-        Button(
-            onClick = {
-                accessor.setDataCount(count + 1)
-                count += 1
-            },
-            modifier = modifier.padding(12.dp)
-        ) {
-            Text("Add")
+            Button(
+                onClick = {
+                    accessor.setDataCount(count + 1)
+                    count += 1
+                },
+                modifier = modifier.padding(12.dp)
+            ) {
+                Text("Refresh")
+            }
         }
     }
 
@@ -191,6 +208,15 @@ fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifi
     var duration = remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
     var progress = remember { mutableDoubleStateOf(accessor.getProgress(index)) }
     val isShowDialog = remember { mutableStateOf(false) }
+
+    LaunchedEffect(duration) {
+        for (i in 0..1000) {
+            run {
+                delay(1000)
+                progress.value = accessor.getProgress(index)
+            }
+        }
+    }
 
     if (isShowDialog.value) {
         EntryDialog(
@@ -218,8 +244,7 @@ fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifi
             IconButton(
                 onClick = {
                     isShowDialog.value = true
-                },
-                //modifier=modifier.fillMaxWidth(0.2f)
+                }
             ) {
                 Icon(Icons.Default.Edit, contentDescription = "Edit")
             }
@@ -274,14 +299,14 @@ fun EntryDialog(accessor: IDataAccessor, text: MutableState<String>, duration: M
                             onDismissRequest()
                         },
                     ) {
-                        Text("Restart")
+                        Text("Reset")
                     }
                     Button(
                         onClick = {
                             onDismissRequest()
                         },
                     ) {
-                        Text("Confirm")
+                        Text("OK")
                     }
                 }
             }
