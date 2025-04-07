@@ -162,7 +162,6 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
     Column (modifier = modifier.padding(12.dp, 54.dp)){
         for (i in 0..<count)
         {
-            var isRefresh = remember { mutableStateOf(false) }
             Entry(accessor, { count -= 1 }, i, modifier)
         }
         Row {
@@ -174,16 +173,6 @@ fun TodoList(accessor: IDataAccessor, modifier: Modifier = Modifier) {
                 modifier = modifier.padding(12.dp)
             ) {
                 Text("Add")
-            }
-
-            Button(
-                onClick = {
-                    accessor.setDataCount(count + 1)
-                    count += 1
-                },
-                modifier = modifier.padding(12.dp)
-            ) {
-                Text("Refresh")
             }
         }
     }
