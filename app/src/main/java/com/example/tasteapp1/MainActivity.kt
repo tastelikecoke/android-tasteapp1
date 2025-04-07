@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,13 +26,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.TextField
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableDoubleStateOf
+import java.time.Instant
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,6 +60,25 @@ interface IDataAccessor {
     fun getDataCount(): Int
     fun setDataCount(count: Int): Unit
     fun removeData(data: String, index: Int): Unit
+    fun getProgress(index: Int): Double
+    fun storeProgress(progress: Double, index: Int): Unit
+}
+
+fun durationToSeconds(duration: String): Double {
+    if (duration == "0s") return 0.0
+    if (duration == "") return 0.0
+
+    if (duration.last() == 'd' || duration.last() == 'h' || duration.last() == 'm' || duration.last() == 's') {
+        val substringNumber = duration.substring(0, duration.length - 1).toDoubleOrNull()
+        if(substringNumber != null)
+        {
+            if(duration.last() == 'd') return (substringNumber * 86400.0)
+            if(duration.last() == 'h') return (substringNumber * 3600.0)
+            if(duration.last() == 'm') return (substringNumber * 60.0)
+            if(duration.last() == 's') return substringNumber
+        }
+    }
+    return 0.0
 }
 
 class DataAccessor(val activity : MainActivity) : IDataAccessor {
@@ -107,6 +125,30 @@ class DataAccessor(val activity : MainActivity) : IDataAccessor {
 
         setDataCount(count - 1)
     }
+    override fun getProgress(index: Int): Double {
+        val futureDateString = getData(DATE_KEY, index)
+        val currentDate = Instant.now().epochSecond.toDouble()
+        val futureDate = when (futureDateString) {
+            "" -> currentDate
+            else -> futureDateString.toDouble()
+        }
+
+        val durationSeconds = durationToSeconds(getData(DURATION_KEY, index))
+
+        if (durationSeconds < 0.0001) return 1.0
+        if (futureDate < currentDate) return 1.0
+        if ((futureDate - currentDate) / durationSeconds < 0.0001) return 0.0
+        return 1.0 - (futureDate - currentDate) / durationSeconds
+
+    }
+    override fun storeProgress(progress: Double, index: Int): Unit {
+        val durationSeconds = durationToSeconds(getData(DURATION_KEY, index))
+        val currentDate = Instant.now().epochSecond.toDouble()
+        val remainingSeconds = ((1.0 - progress) * durationSeconds)
+        val futureDate = currentDate + remainingSeconds
+
+        storeData(DATE_KEY, futureDate.toString(), index)
+    }
 }
 
 
@@ -147,6 +189,7 @@ fun validateDuration(value: String): Boolean {
 fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifier: Modifier = Modifier) {
     var text = remember { mutableStateOf(accessor.getData(accessor.NOTE_KEY, index)) }
     var duration = remember { mutableStateOf(accessor.getData(accessor.DURATION_KEY, index)) }
+    var progress = remember { mutableDoubleStateOf(accessor.getProgress(index)) }
     val isShowDialog = remember { mutableStateOf(false) }
 
     if (isShowDialog.value) {
@@ -182,7 +225,7 @@ fun Entry(accessor: IDataAccessor, subtractItems: () -> Unit, index: Int, modifi
             }
         }
         LinearProgressIndicator(
-            progress = { .50f },
+            progress = { progress.value.toFloat() },
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -227,7 +270,7 @@ fun EntryDialog(accessor: IDataAccessor, text: MutableState<String>, duration: M
 
                     Button(
                         onClick = {
-
+                            accessor.storeProgress(0.0, index)
                             onDismissRequest()
                         },
                     ) {
@@ -257,6 +300,13 @@ class DummyAccessor : IDataAccessor {
     override fun getDataCount(): Int { return 2 }
     override fun setDataCount(count: Int): Unit { return }
     override fun removeData(data: String, index: Int): Unit {}
+
+    override fun getProgress(index: Int): Double {
+        return 0.5
+    }
+    override fun storeProgress(progress: Double, index: Int): Unit {
+
+    }
 }
 
 @Preview(showBackground = true)
